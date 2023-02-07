@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 # configuring paths due to poor packaging of byte-tracker
 HOME = os.getcwd()
-sys.path.append(f"{HOME}/ByteTrack")
+#sys.path.append(f"{HOME}/ByteTrack")
 sys.path.append(f"{HOME}/yolov7")
 
 
@@ -21,41 +21,40 @@ import torch.backends.cudnn as cudnn
 
 from supervision.draw.color import ColorPalette
 from supervision.geometry.dataclasses import Point
-from supervision.video import VideoInfo
-from supervision.video import get_video_frames_generator
-from supervision.video import VideoSink
-from supervision.notebook.utils import show_frame_in_notebook
 from supervision.tools.detections import Detections, BoxAnnotator
 from supervision.tools.line_counter import LineCounter, LineCounterAnnotator
 
-import yolox
-from yolox.tracker.byte_tracker import BYTETracker, STrack
+
+from tracker.byte_tracker import BYTETracker, STrack
 from onemetric.cv.utils.iou import box_iou_batch
 
 # change directory to yolov7
 os.chdir(f"{HOME}/yolov7")
 
 from utils.general import increment_path, set_logging, check_img_size
-from yolov7.utils.general import check_imshow, non_max_suppression, apply_classifier
-from yolov7.utils.general import scale_coords, xyxy2xywh
+from yolov7.utils.general import check_imshow, non_max_suppression
+from yolov7.utils.general import scale_coords
 from yolov7.utils.torch_utils import select_device, TracedModel, time_synchronized
 from yolov7.models.experimental import attempt_load
-from yolov7.utils.plots import plot_one_box
+#from yolov7.utils.plots import plot_one_box
 from yolov7.utils.datasets import LoadStreams, LoadImages
 
 # LINE_START: Point = Point(50, 50)
 # LINE_END: Point = Point(50, 200)
-LINE_START: Point = Point(500, 500)
-LINE_END: Point = Point(500, 1500)
+LINE_START = Point(10,1500)
+LINE_END = Point(1000,1500)
+
+# LINE_START: Point = Point(500, 500)
+# LINE_END: Point = Point(500, 1500)
 # CLASS_ID = [2, 3, 5, 7] # cars, buses, trucks, motorbikes
-CLASS_ID = [41] # person:0, cups:41
-#CLASS_ID = [0] # crops
+#CLASS_ID = [41] # person:0, cups:41
+CLASS_ID = [0] # crop:0
 
 @dataclass(frozen=True)
 class BYTETrackerArgs:
-    track_thresh: float = 0.25
+    track_thresh: float = 0.8
     track_buffer: int = 30
-    match_thresh: float = 0.8
+    match_thresh: float = 0.95
     aspect_ratio_thresh: float = 3.0
     min_box_area: float = 1.0
     mot20: bool = False
@@ -192,12 +191,12 @@ class YoloV7Tracker:
                 img = img.unsqueeze(0)
 
             #Warmup
-            if self.device.type != 'cpu' and (old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
-                old_img_b = img.shape[0]
-                old_img_h = img.shape[2]
-                old_img_w = img.shape[3]
-                for i in range(3):
-                    self.model(img, augment=self.opt.augment)[0]
+            # if self.device.type != 'cpu' and (old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
+            #     old_img_b = img.shape[0]
+            #     old_img_h = img.shape[2]
+            #     old_img_w = img.shape[3]
+            #     for i in range(3):
+            #         self.model(img, augment=self.opt.augment)[0]
 
             # model prediction on single frame and conversion to supervision Detections
             # Inference
@@ -221,8 +220,8 @@ class YoloV7Tracker:
 
             p = Path(p)  # to Path
             save_path = str(self.save_dir / p.name)  # img.jpg
-            txt_path = str(self.save_dir / 'labels' / p.stem) + ('' if self.tracker_dataset.mode == 'image' else f'_{frame}')  # img.txt
-            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+            # txt_path = str(self.save_dir / 'labels' / p.stem) + ('' if self.tracker_dataset.mode == 'image' else f'_{frame}')  # img.txt
+            # gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -240,37 +239,40 @@ class YoloV7Tracker:
                 boxes.append(torch.tensor(xyxy).detach().cpu().numpy())
                 confs.append(torch.tensor(conf).detach().cpu().numpy())
                 class_ids.append(torch.tensor(cls).detach().cpu().numpy().astype(int))
-
-            detections = Detections(
-                    xyxy=np.array(boxes),
-                    confidence=np.array(confs),
-                    class_id=np.array(class_ids),
+            try:
+                detections = Detections(
+                        xyxy=np.array(boxes),
+                        confidence=np.array(confs),
+                        class_id=np.array(class_ids),
+                    )
+                    # filtering out detections with unwanted classes
+                # mask = np.array([class_id in CLASS_ID for class_id in detections.class_id], dtype=bool)
+                # detections.filter(mask=mask, inplace=True)
+                # tracking detections
+                tracks = self.byte_tracker.update(
+                    output_results=detections2boxes(detections=detections),
+                    img_info=im0.shape,
+                    img_size=im0.shape
                 )
-                # filtering out detections with unwanted classes
-            mask = np.array([class_id in CLASS_ID for class_id in detections.class_id], dtype=bool)
-            detections.filter(mask=mask, inplace=True)
-            # tracking detections
-            tracks = self.byte_tracker.update(
-                output_results=detections2boxes(detections=detections),
-                img_info=im0.shape,
-                img_size=im0.shape
-            )
-            tracker_id = match_detections_with_tracks(detections=detections, tracks=tracks)
-            detections.tracker_id = np.array(tracker_id)
-            # filtering out detections without trackers
-            mask = np.array([tracker_id is not None for tracker_id in detections.tracker_id], dtype=bool)
-            detections.filter(mask=mask, inplace=True)
-            # format custom labels
-            labels = [
-                f"#{tracker_id} {self.classes[class_id]} {confidence:0.2f}"
-                for _, confidence, class_id, tracker_id
-                in detections
-            ]
-            # updating line counter
-            self.line_counter.update(detections=detections)
-            # annotate and display frame
-            im0 = self.box_annotator.annotate(frame=im0, detections=detections, labels=labels)
-            self.line_annotator.annotate(frame=im0, line_counter=self.line_counter)
+                tracker_id = match_detections_with_tracks(detections=detections, tracks=tracks)
+                detections.tracker_id = np.array(tracker_id)
+                # filtering out detections without trackers
+                mask = np.array([tracker_id is not None for tracker_id in detections.tracker_id], dtype=bool)
+                detections.filter(mask=mask, inplace=True)
+                # format custom labels
+                labels = [
+                    f"#{tracker_id} {self.classes[class_id]} {confidence:0.2f}"
+                    for _, confidence, class_id, tracker_id
+                    in detections
+                ]
+                # updating line counter
+                self.line_counter.update(detections=detections)
+                # annotate and display frame
+                im0 = self.box_annotator.annotate(frame=im0, detections=detections, labels=labels)
+                self.line_annotator.annotate(frame=im0, line_counter=self.line_counter)
+            
+            except Exception as e:
+                print(e)
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
