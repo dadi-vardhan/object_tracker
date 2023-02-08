@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 # configuring paths due to poor packaging of byte-tracker
 HOME = os.getcwd()
-#sys.path.append(f"{HOME}/ByteTrack")
 sys.path.append(f"{HOME}/yolov7")
 
 
@@ -54,7 +53,7 @@ CLASS_ID = [0] # crop:0
 class BYTETrackerArgs:
     track_thresh: float = 0.8
     track_buffer: int = 30
-    match_thresh: float = 0.95
+    match_thresh: float = 0.9
     aspect_ratio_thresh: float = 3.0
     min_box_area: float = 1.0
     mot20: bool = False
@@ -189,14 +188,6 @@ class YoloV7Tracker:
             img /= 255.0  # 0 - 255 to 0.0 - 1.0
             if img.ndimension() == 3:
                 img = img.unsqueeze(0)
-
-            #Warmup
-            # if self.device.type != 'cpu' and (old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
-            #     old_img_b = img.shape[0]
-            #     old_img_h = img.shape[2]
-            #     old_img_w = img.shape[3]
-            #     for i in range(3):
-            #         self.model(img, augment=self.opt.augment)[0]
 
             # model prediction on single frame and conversion to supervision Detections
             # Inference
