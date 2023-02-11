@@ -25,7 +25,7 @@ from supervision.tools.line_counter import LineCounter, LineCounterAnnotator
 
 
 from tracker.byte_tracker import BYTETracker, STrack
-from onemetric.cv.utils.iou import box_iou_batch
+from tracker_utils import box_iou_batch
 
 # change directory to yolov7
 os.chdir(f"{HOME}/yolov7")
@@ -188,6 +188,10 @@ class YoloV7Tracker:
             img /= 255.0  # 0 - 255 to 0.0 - 1.0
             if img.ndimension() == 3:
                 img = img.unsqueeze(0)
+
+            # show image
+            cv2.imshow("img",img)
+            cv2.waitKey(1)
 
             # model prediction on single frame and conversion to supervision Detections
             # Inference
