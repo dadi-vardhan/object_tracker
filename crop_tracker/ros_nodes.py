@@ -1,11 +1,11 @@
-
+#!../../../venv/bin/python3
 
 import os 
 import sys
 from enum import Enum
 
-HOME = os.getcwd()
-sys.path.append(f"{HOME}/yolov7")
+# HOME = os.getcwd()
+# sys.path.append(f"{HOME}/yolov7")
 
 import numpy as np
 import cv2
@@ -15,6 +15,13 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+
+from supervision.draw.color import ColorPalette
+from supervision.geometry.dataclasses import Point
+from supervision.tools.detections import Detections, BoxAnnotator
+
+from tracker.byte_tracker import BYTETracker, STrack
+from tracker_utils import box_iou_batch
 
 from yolov7.utils.datasets import LoadStreams, LoadImages
 from yolov7.utils.general import check_imshow
@@ -102,7 +109,6 @@ class VideoListener(Node):
         cv2.waitKey(1)
 
 
-
 def main1(args=None):
     rclpy.init(args=args)
     image_publisher = VideoStreamer()
@@ -110,12 +116,12 @@ def main1(args=None):
     image_publisher.destroy_node()
     rclpy.shutdown()
 
-def main2(args=None):
-    rclpy.init(args=args)
-    image_subscriber = VideoListener()
-    rclpy.spin(image_subscriber)
-    image_subscriber.destroy_node()
-    rclpy.shutdown()
+# def main2(args=None):
+#     rclpy.init(args=args)
+#     image_subscriber = VideoListener()
+#     rclpy.spin(image_subscriber)
+#     image_subscriber.destroy_node()
+#     rclpy.shutdown()
 
 if __name__ == '__main__':
     main1()
