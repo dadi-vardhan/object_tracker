@@ -26,7 +26,7 @@ from supervision.tools.line_counter import LineCounter, LineCounterAnnotator
 
 
 from tracker.byte_tracker import BYTETracker, STrack
-from tracker_utils import box_iou_batch
+from crop_tracker.tracker.tracker_utils import box_iou_batch
 
 # change directory to yolov7
 os.chdir(f"{HOME}/yolov7")

@@ -4,9 +4,6 @@ import os
 import sys
 from enum import Enum
 
-# HOME = os.getcwd()
-# sys.path.append(f"{HOME}/yolov7")
-
 import numpy as np
 import cv2
 import torch.backends.cudnn as cudnn
@@ -16,16 +13,15 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
-from supervision.draw.color import ColorPalette
-from supervision.geometry.dataclasses import Point
-from supervision.tools.detections import Detections, BoxAnnotator
+from .supervision.color import ColorPalette
+from .supervision.dataclasses import Point
+from .supervision.detections import Detections, BoxAnnotator
 
-from tracker.byte_tracker import BYTETracker, STrack
-from tracker_utils import box_iou_batch
+from .tracker.byte_tracker import BYTETracker, STrack
+from .tracker.tracker_utils import box_iou_batch
 
-from yolov7.utils.datasets import LoadStreams, LoadImages
-from yolov7.utils.general import check_imshow
-
+from .yolov7_ros.dataset_utils import LoadStreams, LoadImages
+from .yolov7_ros.general_utils import check_imshow
 
 class StreamArgs(Enum):
     SOURCE: str = '/home/dadi_vardhan/Downloads/camera_0.mp4'# Path to video file
@@ -116,13 +112,13 @@ def main1(args=None):
     image_publisher.destroy_node()
     rclpy.shutdown()
 
-# def main2(args=None):
-#     rclpy.init(args=args)
-#     image_subscriber = VideoListener()
-#     rclpy.spin(image_subscriber)
-#     image_subscriber.destroy_node()
-#     rclpy.shutdown()
+def main2(args=None):
+    rclpy.init(args=args)
+    image_subscriber = VideoListener()
+    rclpy.spin(image_subscriber)
+    image_subscriber.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main1()
-    #main2()
+    main2()
