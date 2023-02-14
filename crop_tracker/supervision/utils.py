@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from supervision.commons.dataclasses import Point, Rect
-from supervision.draw.color import Color
+from .dataclasses import Point, Rect
+from .color import Color
 
 
 def draw_line(

@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 import cv2
 import numpy as np
 
-from supervision.draw.color import Color, ColorPalette
+from .color import Color, ColorPalette
 
 
 class Detections:

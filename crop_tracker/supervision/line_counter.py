@@ -3,9 +3,9 @@ from typing import Dict
 import cv2
 import numpy as np
 
-from supervision.draw.color import Color
-from supervision.geometry.dataclasses import Point, Rect, Vector
-from supervision.tools.detections import Detections
+from .color import Color
+from .dataclasses import Point, Rect, Vector
+from .detections import Detections
 
 
 class LineCounter:
