@@ -7,13 +7,13 @@ def generate_launch_description():
         Node(
             package='crop_tracker',
             namespace='Streamer',
-            executable='video_reader',
+            executable='video_streamer',
             name='load_images',
         ),
         Node(
             package='crop_tracker',
             namespace='Listener',
             executable='video_listener',
-            name='video_listener',
+            name='listen_images',
         ),
    ])
